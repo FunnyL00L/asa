@@ -1,0 +1,5 @@
+{
+  "name": "GameBackend Admin",
+  "description": "Serverless Backend Admin Dashboard for Google Sheets. Manages Unity Game data, students, and questions.",
+  "requestFramePermissions": []
+}
