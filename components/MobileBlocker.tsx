@@ -31,8 +31,8 @@ export const MobileBlocker: React.FC = () => {
         </div>
 
         <div className="text-xs text-green-800 pt-4 border-t border-green-900/30 font-mono">
-          > System.exit(1)<br/>
-          > _
+          &gt; System.exit(1)<br/>
+          &gt; _
         </div>
       </div>
     </div>
