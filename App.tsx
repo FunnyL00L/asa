@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Students } from './pages/Students';
@@ -9,10 +9,12 @@ import { StudentResults } from './pages/StudentResults';
 import { googleSheetsService } from './services/googleSheetsService';
 import { Student, Question, Score, User } from './types';
 import { ToastContainer } from './components/ToastContainer';
+import { MobileBlocker } from './components/MobileBlocker';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [isMobile, setIsMobile] = useState(false);
   
   // Loading State
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,21 @@ function App() {
   const [students, setStudents] = useState<Student[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [scores, setScores] = useState<Score[]>([]);
+
+  // 1. Mobile Detection Logic
+  useEffect(() => {
+    const checkScreenSize = () => {
+      // Check if width is less than 1024px (Tablets Portrait & Mobile)
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    // Run on mount
+    checkScreenSize();
+
+    // Run on resize
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
@@ -51,9 +68,6 @@ function App() {
     }
 
     try {
-      // Backend now handles the logic:
-      // If user is YudaAR -> returns only Yuda data
-      // If user is Super Admin -> returns Combined data
       const [sData, qData, scData] = await Promise.all([
         googleSheetsService.getStudents(user.username),
         googleSheetsService.getQuestions(user.username),
@@ -64,8 +78,6 @@ function App() {
       const fetchedQuestions = qData.data || [];
       const fetchedScores = scData.data || [];
 
-      // No need for frontend filtering anymore because the Backend sheets are physically separated
-      
       setStudents(fetchedStudents);
       setQuestions(fetchedQuestions);
       setScores(fetchedScores);
@@ -85,6 +97,11 @@ function App() {
       }
     }
   };
+
+  // 2. Immediate Block if Mobile
+  if (isMobile) {
+    return <MobileBlocker />;
+  }
 
   if (!currentUser) {
     return (
