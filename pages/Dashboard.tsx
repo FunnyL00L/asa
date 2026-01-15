@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, FileQuestion, Trophy, Activity, Medal, Shield, Search, ArrowRight, Star } from 'lucide-react';
+import { Users, FileQuestion, Trophy, Activity, Medal, Shield, Search, ArrowRight, Star, Wifi, WifiOff, Database, Zap } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Student, Question, Score, GameId, User } from '../types';
 
@@ -8,9 +8,14 @@ interface DashboardProps {
   questions: Question[];
   scores: Score[];
   currentUser: User;
+  networkMetrics?: {
+    isConnected: boolean;
+    latency: number;
+    lastSync: Date;
+  };
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ students, questions, scores, currentUser }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ students, questions, scores, currentUser, networkMetrics }) => {
   const [lookupToken, setLookupToken] = useState('');
   const [lookupResult, setLookupResult] = useState<Student | null>(null);
   const [lookupMessage, setLookupMessage] = useState('');
@@ -90,9 +95,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800">Dashboard Overview</h2>
-        <p className="text-slate-500 mt-1">Welcome back, {currentUser.name}.</p>
+      {/* HEADER SECTION WITH STATUS */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 className="text-3xl font-bold text-slate-800">Dashboard Overview</h2>
+            <p className="text-slate-500 mt-1">Welcome back, {currentUser.name}.</p>
+        </div>
+
+        {/* SYSTEM STATUS CARD */}
+        {networkMetrics && (
+            <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div className="flex items-center space-x-2 border-r border-slate-100 pr-4">
+                    <div className="relative">
+                        <div className={`w-3 h-3 rounded-full ${networkMetrics.isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        {networkMetrics.isConnected && (
+                            <div className="absolute top-0 left-0 w-3 h-3 rounded-full bg-green-500 animate-ping opacity-75"></div>
+                        )}
+                    </div>
+                    <span className={`text-xs font-bold ${networkMetrics.isConnected ? 'text-green-700' : 'text-red-700'}`}>
+                        {networkMetrics.isConnected ? 'LIVE SYNC' : 'OFFLINE'}
+                    </span>
+                </div>
+
+                <div className="flex items-center space-x-2 border-r border-slate-100 pr-4">
+                    <Zap size={14} className={networkMetrics.latency < 1000 ? 'text-green-500' : 'text-orange-500'} />
+                    <span className="text-xs font-mono font-medium text-slate-600">
+                        {networkMetrics.latency}ms
+                    </span>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                    <Database size={14} className="text-blue-500" />
+                    <span className="text-xs text-slate-500">
+                        DB Refresh: 0.5s
+                    </span>
+                </div>
+            </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

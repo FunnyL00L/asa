@@ -20,6 +20,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  // Network Metrics State
+  const [networkMetrics, setNetworkMetrics] = useState({
+    isConnected: false,
+    latency: 0,
+    lastSync: new Date()
+  });
+
   // Application Data State
   const [students, setStudents] = useState<Student[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -59,6 +66,9 @@ function App() {
   const loadData = async (user: User, isBackgroundRefresh = false) => {
     let timer: ReturnType<typeof setInterval> | undefined;
 
+    // Start Measurement
+    const startTime = performance.now();
+
     if (!isBackgroundRefresh) {
       setLoading(true);
       setProgress(10); 
@@ -77,19 +87,34 @@ function App() {
         googleSheetsService.getScores(user.username)
       ]);
       
+      const endTime = performance.now();
+      const latency = Math.round(endTime - startTime);
+
       const fetchedStudents = sData.data || [];
       const fetchedQuestions = qData.data || [];
       const fetchedScores = scData.data || [];
 
-      // Note: React will re-render here. 
-      // For high-frequency polling, strict equality checks on data might be needed 
-      // if performance degrades, but for now this ensures real-time updates.
       setStudents(fetchedStudents);
       setQuestions(fetchedQuestions);
       setScores(fetchedScores);
+
+      // Update Network Status (Success)
+      setNetworkMetrics({
+        isConnected: true,
+        latency: latency,
+        lastSync: new Date()
+      });
       
     } catch (e) {
       console.error("Failed to load data", e);
+      
+      // Update Network Status (Fail)
+      setNetworkMetrics(prev => ({
+        ...prev,
+        isConnected: false,
+        latency: 0
+      }));
+
       if (!isBackgroundRefresh) {
         alert("Could not connect to Google Sheets. Check your internet or API URL.");
       }
@@ -105,8 +130,6 @@ function App() {
   };
 
   // 2. Auto-Refresh Logic (0.5s Interval)
-  // We use a ref to ensure we don't start a new request if the previous one is still pending.
-  // This prevents "Extreme Load" and browser hanging if the API is slow.
   useEffect(() => {
     if (!currentUser) return;
 
@@ -182,7 +205,8 @@ function App() {
                   students={students} 
                   questions={questions} 
                   scores={scores} 
-                  currentUser={currentUser} 
+                  currentUser={currentUser}
+                  networkMetrics={networkMetrics}
                 />
               )}
               {currentPage === 'students' && (
