@@ -1,5 +1,5 @@
-import React from 'react';
-import { Users, FileQuestion, Trophy, Activity, Medal, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, FileQuestion, Trophy, Activity, Medal, Shield, Search, ArrowRight, Star } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Student, Question, Score, GameId, User } from '../types';
 
@@ -11,10 +11,12 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ students, questions, scores, currentUser }) => {
+  const [lookupToken, setLookupToken] = useState('');
+  const [lookupResult, setLookupResult] = useState<Student | null>(null);
+  const [lookupMessage, setLookupMessage] = useState('');
+
   // Calculations
   const highestScore = scores.length > 0 ? Math.max(...scores.map(s => s.score)) : 0;
-  
-  // Unique students who played
   const uniqueParticipants = new Set(scores.map(s => s.token)).size;
 
   const stats = [
@@ -23,6 +25,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
     { label: 'Students Participated', value: uniqueParticipants, icon: Activity, color: 'text-green-500', bg: 'bg-green-100' },
     { label: 'Score Tertinggi', value: highestScore, icon: Trophy, color: 'text-yellow-500', bg: 'bg-yellow-100' },
   ];
+
+  const handleLookup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if(!lookupToken) return;
+    
+    // Case insensitive search
+    const found = students.find(s => s.token.trim().toUpperCase() === lookupToken.trim().toUpperCase());
+    
+    if (found) {
+        setLookupResult(found);
+        setLookupMessage('');
+    } else {
+        setLookupResult(null);
+        setLookupMessage('Token not found.');
+    }
+  };
+
+  // Helper to calculate high score for the looked-up student
+  const getHighScoreForStudent = (token: string) => {
+      // Find all scores for this token
+      const studentScores = scores.filter(s => s.token === token);
+      
+      if (studentScores.length === 0) return 0;
+      
+      // Return the max value
+      return Math.max(...studentScores.map(s => s.score));
+  };
 
   // Prepare chart data
   const yudaScores = scores.filter(s => s.gameId === GameId.YUDA_AR);
@@ -33,7 +62,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
     { name: 'Sarco AR', submissions: sarcoScores.length, avg: sarcoScores.length ? Math.round(sarcoScores.reduce((a,b) => a+b.score, 0)/sarcoScores.length) : 0 },
   ];
 
-  // PRIVACY FILTER for Charts
   if (currentUser.username === 'YudaAR') {
     chartData = chartData.filter(d => d.name === 'Yuda AR');
   } else if (currentUser.username === 'SarcoAR') {
@@ -42,8 +70,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
 
   // LEADERBOARD LOGIC
   const leaderboard = scores
-    .sort((a, b) => b.score - a.score) // Sort descending
-    .slice(0, 5) // Take top 5
+    .sort((a, b) => b.score - a.score) 
+    .slice(0, 5) 
     .map(score => {
         const student = students.find(s => s.token === score.token);
         return {
@@ -64,10 +92,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold text-slate-800">Dashboard Overview</h2>
-        <p className="text-slate-500 mt-1">Real-time data from your Google Sheets Database.</p>
+        <p className="text-slate-500 mt-1">Welcome back, {currentUser.name}.</p>
       </div>
 
-      {/* STATS CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
@@ -85,33 +112,98 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
         })}
       </div>
 
-      {/* SUPER ADMIN: ADMIN CONTRIBUTION STATS */}
-      {currentUser.role === 'SUPER_ADMIN' && (
-        <div className="bg-slate-900 rounded-xl p-6 shadow-lg text-white">
+      {/* QUICK TOKEN LOOKUP & SUPER ADMIN STATS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Token Lookup */}
+        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 shadow-lg text-white">
             <div className="flex items-center space-x-2 mb-4">
-                <Shield className="text-blue-400" size={24}/>
-                <h3 className="text-lg font-bold">Admin Contributions (Super Admin View)</h3>
+                <Search className="text-indigo-200" size={24}/>
+                <h3 className="text-lg font-bold">Quick Token Check</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {adminStats.map((stat, idx) => (
-                    <div key={idx} className="bg-slate-800 p-4 rounded-lg border border-slate-700">
-                        <h4 className="font-bold text-lg text-blue-300 mb-2">{stat.name}</h4>
-                        <div className="flex justify-between text-sm text-slate-300">
-                            <span>Students Created:</span>
-                            <span className="font-bold text-white">{stat.students}</span>
+            <p className="text-indigo-100 text-sm mb-4">Enter a student token to see their Name and Highest Score.</p>
+            
+            <form onSubmit={handleLookup} className="flex space-x-2 mb-4">
+                <input 
+                    type="text" 
+                    placeholder="Enter Token (e.g. X7K9P2)" 
+                    className="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-indigo-300 outline-none focus:bg-white/20 transition-all uppercase font-mono"
+                    value={lookupToken}
+                    onChange={(e) => setLookupToken(e.target.value)}
+                />
+                <button type="submit" className="bg-white text-indigo-700 px-4 py-2 rounded-lg font-bold hover:bg-indigo-50 transition-colors">
+                    Check
+                </button>
+            </form>
+
+            {lookupMessage && <p className="text-red-300 font-bold bg-red-900/20 p-2 rounded border border-red-500/30">{lookupMessage}</p>}
+            
+            {lookupResult && (
+                <div className="bg-white/10 rounded-lg p-4 border border-white/20 animate-in fade-in slide-in-from-top-2">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <p className="text-xs text-indigo-300 uppercase font-bold">Student Name</p>
+                            <p className="text-xl font-bold">{lookupResult.name}</p>
+                            <p className="text-sm text-indigo-200">{lookupResult.class}</p>
                         </div>
-                        <div className="flex justify-between text-sm text-slate-300 mt-1">
-                            <span>Questions Created:</span>
-                            <span className="font-bold text-white">{stat.questions}</span>
+                        <div className="text-right">
+                             <p className="text-xs text-indigo-300 uppercase font-bold mb-1">Highest Score</p>
+                             <div className="flex items-center justify-end space-x-1">
+                                <Trophy size={18} className="text-yellow-400" />
+                                <span className="text-2xl font-bold text-white">
+                                    {getHighScoreForStudent(lookupResult.token)}
+                                </span>
+                             </div>
                         </div>
                     </div>
-                ))}
-            </div>
+                    <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
+                         <span className="text-xs text-indigo-300">
+                             Token: <span className="font-mono font-bold text-white bg-white/20 px-2 py-0.5 rounded">{lookupResult.token}</span>
+                         </span>
+                         {currentUser.role === 'SUPER_ADMIN' && (
+                             <span className="text-xs bg-indigo-900/50 px-2 py-1 rounded text-indigo-200 border border-indigo-500/30">
+                                 Owner: {lookupResult.owner || 'None'}
+                             </span>
+                         )}
+                    </div>
+                </div>
+            )}
         </div>
-      )}
+
+        {/* Super Admin Stats (Conditional) or General Info */}
+        {currentUser.role === 'SUPER_ADMIN' ? (
+            <div className="bg-slate-800 rounded-xl p-6 shadow-lg text-white border border-slate-700">
+                <div className="flex items-center space-x-2 mb-4">
+                    <Shield className="text-blue-400" size={24}/>
+                    <h3 className="text-lg font-bold">Admin Activity Monitor</h3>
+                </div>
+                <div className="space-y-3">
+                    {adminStats.map((stat, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors">
+                            <span className="font-bold text-blue-300">{stat.name}</span>
+                            <div className="text-right flex space-x-4 text-sm">
+                                <span className="text-slate-300"><b>{stat.students}</b> Students</span>
+                                <span className="text-slate-300"><b>{stat.questions}</b> Questions</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        ) : (
+             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-center">
+                 <h3 className="text-lg font-bold text-slate-800 mb-2">Need Help?</h3>
+                 <p className="text-slate-600 mb-4">You are viewing data specifically for <b>{currentUser.username}</b>. Data from other admins is hidden for privacy.</p>
+                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 flex items-start gap-3">
+                     <Star className="text-blue-500 shrink-0 mt-1" size={18} />
+                     <div>
+                        <p className="text-sm text-blue-800 font-medium">Tip:</p>
+                        <p className="text-sm text-blue-700">Use the search box on the left to quickly check if a student has played and what their best score is.</p>
+                     </div>
+                 </div>
+             </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
         {/* CHART SECTION */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-bold text-slate-800 mb-6">Game Engagement</h3>

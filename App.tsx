@@ -5,6 +5,7 @@ import { Students } from './pages/Students';
 import { Questions } from './pages/Questions';
 import { Login } from './pages/Login';
 import { IntegrationHelp } from './pages/IntegrationHelp';
+import { StudentResults } from './pages/StudentResults';
 import { googleSheetsService } from './services/googleSheetsService';
 import { Student, Question, Score, User } from './types';
 import { ToastContainer } from './components/ToastContainer';
@@ -24,7 +25,6 @@ function App() {
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    // Directly call loadData with the user object. Default isBackgroundRefresh = false (Shows Loading Overlay)
     loadData(user);
   };
 
@@ -39,37 +39,32 @@ function App() {
   const loadData = async (user: User, isBackgroundRefresh = false) => {
     let timer: ReturnType<typeof setInterval> | undefined;
 
-    // Only show loading overlay if NOT a background refresh (e.g. Initial Login)
     if (!isBackgroundRefresh) {
       setLoading(true);
-      setProgress(10); // Start progress
-
-      // Simulate progress bar movement while fetching
+      setProgress(10); 
       timer = setInterval(() => {
         setProgress((old) => {
           if (old >= 90) return old;
-          return old + Math.random() * 5; // Slower increment for network calls
+          return old + Math.random() * 5; 
         });
       }, 200);
     }
 
     try {
+      // Backend now handles the logic:
+      // If user is YudaAR -> returns only Yuda data
+      // If user is Super Admin -> returns Combined data
       const [sData, qData, scData] = await Promise.all([
-        googleSheetsService.getStudents(),
-        googleSheetsService.getQuestions(),
-        googleSheetsService.getScores()
+        googleSheetsService.getStudents(user.username),
+        googleSheetsService.getQuestions(user.username),
+        googleSheetsService.getScores(user.username)
       ]);
       
-      // Data Isolation Logic
-      let fetchedStudents = sData.data || [];
-      let fetchedQuestions = qData.data || [];
-      let fetchedScores = scData.data || [];
+      const fetchedStudents = sData.data || [];
+      const fetchedQuestions = qData.data || [];
+      const fetchedScores = scData.data || [];
 
-      if (user.role !== 'SUPER_ADMIN') {
-        fetchedStudents = fetchedStudents.filter(s => s.owner === user.username);
-        fetchedQuestions = fetchedQuestions.filter(q => q.owner === user.username);
-        fetchedScores = fetchedScores.filter(s => s.owner === user.username);
-      }
+      // No need for frontend filtering anymore because the Backend sheets are physically separated
       
       setStudents(fetchedStudents);
       setQuestions(fetchedQuestions);
@@ -77,15 +72,13 @@ function App() {
       
     } catch (e) {
       console.error("Failed to load data", e);
-      // Only alert if it's the initial load, otherwise toast (handled by components) or silent
       if (!isBackgroundRefresh) {
         alert("Could not connect to Google Sheets. Check your internet or API URL.");
       }
     } finally {
       if (!isBackgroundRefresh) {
         if (timer) clearInterval(timer);
-        setProgress(100); // Force complete
-        
+        setProgress(100);
         setTimeout(() => {
           setLoading(false);
         }, 500);
@@ -106,7 +99,6 @@ function App() {
     <div className="flex min-h-screen bg-slate-50">
       <ToastContainer />
       
-      {/* Loading Overlay - Only visible when loading state is true (Initial Login) */}
       {loading && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900 text-white">
           <div className="w-64 space-y-4 text-center">
@@ -118,13 +110,12 @@ function App() {
               ></div>
             </div>
             <p className="text-xs text-slate-400 font-mono">
-              Syncing with Google Sheets... {Math.round(progress)}%
+              Fetching isolated data for {currentUser.username}...
             </p>
           </div>
         </div>
       )}
 
-      {/* Main App Structure */}
       {!loading && (
         <>
           <Sidebar 
@@ -154,6 +145,14 @@ function App() {
               {currentPage === 'questions' && (
                 <Questions 
                   questions={questions} 
+                  refreshData={() => currentUser && loadData(currentUser, true)} 
+                  currentUser={currentUser} 
+                />
+              )}
+              {currentPage === 'results' && (
+                <StudentResults 
+                  scores={scores} 
+                  students={students}
                   refreshData={() => currentUser && loadData(currentUser, true)} 
                   currentUser={currentUser} 
                 />

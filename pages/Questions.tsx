@@ -73,7 +73,8 @@ export const Questions: React.FC<QuestionsProps> = ({ questions, refreshData, cu
     showToast('Processing deletion...', 'info');
 
     try {
-        const res = await googleSheetsService.deleteQuestion(questionToDelete.id);
+        // We pass the owner so backend knows which sheet (Yuda or Sarco) to delete from
+        const res = await googleSheetsService.deleteQuestion(questionToDelete.id, questionToDelete.owner);
         if (res.status === 'success') {
             showToast('Question deleted successfully.', 'success');
             refreshData(); // Refresh list

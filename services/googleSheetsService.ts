@@ -1,12 +1,14 @@
 import { Question, Student, Score, ApiResponse } from '../types';
 
 // The Google Apps Script Web App URL provided by the user
-const API_URL = 'https://script.google.com/macros/s/AKfycbxD0MNryYITSoi7MxJHHcFsQWk0qeoj9_9azSBtJOuupGKMrDYRiJF9loTTes8jwNn9ng/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw0Nb3b4_u7ZWhwiWMSLNWz0Gux5GnvEQ76xoVYyyl6ra2nYF3aFdSOvU7Qi6Vx_TOwFw/exec';
 
 export const googleSheetsService = {
-  getQuestions: async (): Promise<ApiResponse<Question[]>> => {
+  getQuestions: async (requester: string, gameId?: string): Promise<ApiResponse<Question[]>> => {
     try {
-      const res = await fetch(`${API_URL}?action=getQuestions`);
+      let url = `${API_URL}?action=getQuestions&requester=${requester}`;
+      if (gameId) url += `&game_id=${gameId}`;
+      const res = await fetch(url);
       return await res.json();
     } catch (e) {
       console.error("API Error", e);
@@ -14,9 +16,9 @@ export const googleSheetsService = {
     }
   },
 
-  getStudents: async (): Promise<ApiResponse<Student[]>> => {
+  getStudents: async (requester: string): Promise<ApiResponse<Student[]>> => {
     try {
-      const res = await fetch(`${API_URL}?action=getStudents`);
+      const res = await fetch(`${API_URL}?action=getStudents&requester=${requester}`);
       return await res.json();
     } catch (e) {
       console.error("API Error", e);
@@ -24,9 +26,9 @@ export const googleSheetsService = {
     }
   },
 
-  getScores: async (): Promise<ApiResponse<Score[]>> => {
+  getScores: async (requester: string): Promise<ApiResponse<Score[]>> => {
     try {
-      const res = await fetch(`${API_URL}?action=getScores`);
+      const res = await fetch(`${API_URL}?action=getScores&requester=${requester}`);
       return await res.json();
     } catch (e) {
       console.error("API Error", e);
@@ -47,11 +49,11 @@ export const googleSheetsService = {
     }
   },
 
-  deleteQuestion: async (id: string): Promise<ApiResponse<null>> => {
+  deleteQuestion: async (id: string, owner: string): Promise<ApiResponse<null>> => {
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'adminDeleteQuestion', id })
+        body: JSON.stringify({ action: 'adminDeleteQuestion', id, owner })
       });
       return await res.json();
     } catch (e) {
@@ -83,15 +85,27 @@ export const googleSheetsService = {
     }
   },
 
-  deleteStudent: async (id: string): Promise<ApiResponse<null>> => {
+  deleteStudent: async (id: string, owner: string): Promise<ApiResponse<null>> => {
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'adminDeleteStudent', id })
+        body: JSON.stringify({ action: 'adminDeleteStudent', id, owner })
       });
       return await res.json();
     } catch (e) {
       return { status: 'error', message: 'Failed to delete student' };
+    }
+  },
+
+  deleteScore: async (id: string, owner: string): Promise<ApiResponse<null>> => {
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'adminDeleteScore', id, owner })
+      });
+      return await res.json();
+    } catch (e) {
+      return { status: 'error', message: 'Failed to delete score' };
     }
   }
 };

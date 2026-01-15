@@ -18,7 +18,12 @@ export const Students: React.FC<StudentsProps> = ({ students, refreshData, curre
   const [currentStudentId, setCurrentStudentId] = useState<string>('');
   const [studentName, setStudentName] = useState('');
   const [studentClass, setStudentClass] = useState('');
-  const [selectedOwner, setSelectedOwner] = useState(currentUser.username);
+  
+  // CRITICAL FIX: Default owner selection logic
+  // If Super Admin, default to YudaAR (valid DB), NEVER 'Prama' because Siswa_Prama doesn't exist.
+  const [selectedOwner, setSelectedOwner] = useState(
+    currentUser.role === 'SUPER_ADMIN' ? 'YudaAR' : currentUser.username
+  );
   
   const [loading, setLoading] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
@@ -34,7 +39,8 @@ export const Students: React.FC<StudentsProps> = ({ students, refreshData, curre
     setIsEditing(false);
     setStudentName('');
     setStudentClass('');
-    setSelectedOwner(currentUser.username); // Default to self
+    // RESET to a valid DB owner for Super Admin
+    setSelectedOwner(currentUser.role === 'SUPER_ADMIN' ? 'YudaAR' : currentUser.username);
     setIsModalOpen(true);
   };
 
@@ -52,7 +58,8 @@ export const Students: React.FC<StudentsProps> = ({ students, refreshData, curre
     setLoading(true);
     try {
       let res;
-      // If Super Admin, use selected owner, else force current user
+      // CRITICAL: Determine correct owner to send to backend
+      // Backend uses 'owner' to decide which sheet (Siswa_Yuda or Siswa_Sarco) to write to.
       const ownerToUse = currentUser.role === 'SUPER_ADMIN' ? selectedOwner : currentUser.username;
 
       if (isEditing) {
@@ -68,8 +75,8 @@ export const Students: React.FC<StudentsProps> = ({ students, refreshData, curre
       } else {
           throw new Error(res.message);
       }
-    } catch (error) {
-      showToast('Operation failed. Please try again.', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Operation failed. Check internet or API URL.', 'error');
     } finally {
       setLoading(false);
     }
@@ -83,7 +90,8 @@ export const Students: React.FC<StudentsProps> = ({ students, refreshData, curre
     if (!studentToDelete) return;
     setIsDeleteLoading(true);
     try {
-        const res = await googleSheetsService.deleteStudent(studentToDelete.id);
+        // Pass owner so backend knows which sheet to delete from
+        const res = await googleSheetsService.deleteStudent(studentToDelete.id, studentToDelete.owner);
         if (res.status === 'success') {
             showToast('Student deleted successfully', 'success');
             setStudentToDelete(null);
@@ -250,16 +258,17 @@ export const Students: React.FC<StudentsProps> = ({ students, refreshData, curre
               {/* SUPER ADMIN ONLY: Select Owner */}
               {currentUser.role === 'SUPER_ADMIN' && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Assign Owner (Admin)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Assign to Game Env (Owner)</label>
                     <select
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                         value={selectedOwner}
                         onChange={(e) => setSelectedOwner(e.target.value)}
                     >
-                        <option value="YudaAR">YudaAR</option>
-                        <option value="SarcoAR">SarcoAR</option>
-                        <option value="Prama">Prama (Super Admin)</option>
+                        {/* PRAMA REMOVED - Students must be in Yuda or Sarco DB */}
+                        <option value="YudaAR">YudaAR (Siswa_Yuda)</option>
+                        <option value="SarcoAR">SarcoAR (Siswa_Sarco)</option>
                     </select>
+                    <p className="text-xs text-slate-500 mt-1">Students must be assigned to a specific Game Database.</p>
                   </div>
               )}
 
