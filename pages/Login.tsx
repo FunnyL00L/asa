@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, ExternalLink } from 'lucide-react';
 import { User } from '../types';
 
 interface LoginProps {
@@ -31,8 +31,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200 relative z-10">
         <div className="text-center mb-8">
           <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <Lock className="text-blue-600" size={32} />
@@ -76,6 +76,22 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             Access Dashboard
           </button>
         </form>
+      </div>
+
+      {/* FOOTER POWERED BY */}
+      <div className="mt-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Powered By</p>
+        <a 
+          href="https://www.instagram.com/trigantalpatistudio/?utm_source=ig_web_button_share_sheet" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="group flex items-center justify-center space-x-2 bg-white/50 backdrop-blur-sm px-6 py-2 rounded-full border border-slate-200 hover:border-pink-300 hover:bg-white hover:shadow-lg hover:shadow-pink-500/10 transition-all duration-300"
+        >
+          <span className="font-bold text-slate-700 group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-600 group-hover:bg-clip-text group-hover:text-transparent transition-all">
+            Trigantalpati Studio
+          </span>
+          <ExternalLink size={14} className="text-slate-400 group-hover:text-pink-500" />
+        </a>
       </div>
     </div>
   );

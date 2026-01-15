@@ -73,8 +73,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
     chartData = chartData.filter(d => d.name === 'Sarco AR');
   }
 
-  // LEADERBOARD LOGIC
-  const leaderboard = scores
+  // LEADERBOARD LOGIC - HIGHEST SCORE PER TOKEN
+  // 1. Group scores by token and keep only the highest
+  const bestScoresMap = new Map<string, Score>();
+  scores.forEach(s => {
+      const currentBest = bestScoresMap.get(s.token);
+      if (!currentBest || s.score > currentBest.score) {
+          bestScoresMap.set(s.token, s);
+      }
+  });
+
+  // 2. Convert map to array, sort by score descending, and slice top 5
+  const leaderboard = Array.from(bestScoresMap.values())
     .sort((a, b) => b.score - a.score) 
     .slice(0, 5) 
     .map(score => {
@@ -267,7 +277,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex items-center space-x-2 mb-4">
              <Medal className="text-yellow-500" size={24} />
-             <h3 className="text-lg font-bold text-slate-800">Top Performing Students</h3>
+             <div className="flex flex-col">
+                <h3 className="text-lg font-bold text-slate-800 leading-tight">Top Performing Students</h3>
+                <span className="text-xs text-slate-400 font-medium">Best Score per Student</span>
+             </div>
           </div>
           
           <div className="overflow-hidden">
@@ -276,7 +289,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
                     <tr>
                         <th className="px-4 py-3">Rank</th>
                         <th className="px-4 py-3">Name</th>
-                        <th className="px-4 py-3 text-right">Score</th>
+                        <th className="px-4 py-3 text-right">Best Score</th>
                         <th className="px-4 py-3 text-right">Game</th>
                     </tr>
                 </thead>
