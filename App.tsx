@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { Students } from './pages/Students';
@@ -24,6 +24,9 @@ function App() {
   const [students, setStudents] = useState<Student[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [scores, setScores] = useState<Score[]>([]);
+
+  // Ref to track active fetch requests to prevent overlapping/stacking
+  const isFetchingRef = useRef(false);
 
   // 1. Mobile Detection Logic
   useEffect(() => {
@@ -78,6 +81,9 @@ function App() {
       const fetchedQuestions = qData.data || [];
       const fetchedScores = scData.data || [];
 
+      // Note: React will re-render here. 
+      // For high-frequency polling, strict equality checks on data might be needed 
+      // if performance degrades, but for now this ensures real-time updates.
       setStudents(fetchedStudents);
       setQuestions(fetchedQuestions);
       setScores(fetchedScores);
@@ -98,7 +104,34 @@ function App() {
     }
   };
 
-  // 2. Immediate Block if Mobile
+  // 2. Auto-Refresh Logic (0.5s Interval)
+  // We use a ref to ensure we don't start a new request if the previous one is still pending.
+  // This prevents "Extreme Load" and browser hanging if the API is slow.
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const intervalId = setInterval(async () => {
+      // Guard: If fetch is in progress, skip this tick
+      if (isFetchingRef.current) return;
+      
+      // Guard: If tab is hidden, skip to save resources
+      if (document.hidden) return;
+
+      isFetchingRef.current = true;
+      try {
+        await loadData(currentUser, true);
+      } catch (error) {
+        // Silent catch for background refresh
+        console.warn("Background refresh skipped");
+      } finally {
+        isFetchingRef.current = false;
+      }
+    }, 500); // 0.5 Seconds
+
+    return () => clearInterval(intervalId);
+  }, [currentUser]); // Re-initialize when user logs in
+
+  // 3. Immediate Block if Mobile
   if (isMobile) {
     return <MobileBlocker />;
   }
