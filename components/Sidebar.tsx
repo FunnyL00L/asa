@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, FileQuestion, Code, LogOut, ShieldCheck, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, FileQuestion, Code, LogOut, ShieldCheck, ClipboardList, FileText } from 'lucide-react';
 import { User } from '../types';
 
 interface SidebarProps {
@@ -14,7 +14,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, onLogout
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students & Tokens', icon: Users },
     { id: 'questions', label: 'Manage Questions', icon: FileQuestion },
-    { id: 'results', label: 'Student Results', icon: ClipboardList }, // NEW MENU ITEM
+    { id: 'content', label: 'Manage Content', icon: FileText }, // NEW MENU ITEM
+    { id: 'results', label: 'Student Results', icon: ClipboardList },
   ];
 
   if (currentUser.role === 'SUPER_ADMIN') {

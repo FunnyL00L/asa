@@ -1,3 +1,4 @@
+
 export enum GameId {
   YUDA_AR = 'YUDA_AR',
   SARCO_AR = 'SARCO_AR'
@@ -40,6 +41,18 @@ export interface Score {
   gameId: string;
   timestamp: string;
   owner: string; // Derived from the student's owner
+}
+
+export interface ContentItem {
+  id: string;
+  title: string;
+  location: string;
+  body: string;
+  fileUrl: string; // Stores the Google Drive Download Link
+  fileName: string; // Stores "document.pdf" etc.
+  fileType: string; // 'application/pdf', 'image/png', etc.
+  date: string;
+  owner: string;
 }
 
 export interface AdminUser {

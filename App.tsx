@@ -6,6 +6,7 @@ import { Questions } from './pages/Questions';
 import { Login } from './pages/Login';
 import { IntegrationHelp } from './pages/IntegrationHelp';
 import { StudentResults } from './pages/StudentResults';
+import { ContentManager } from './pages/ContentManager'; // IMPORT NEW PAGE
 import { googleSheetsService } from './services/googleSheetsService';
 import { Student, Question, Score, User } from './types';
 import { ToastContainer } from './components/ToastContainer';
@@ -222,6 +223,9 @@ function App() {
                   refreshData={() => currentUser && loadData(currentUser, true)} 
                   currentUser={currentUser} 
                 />
+              )}
+              {currentPage === 'content' && (
+                <ContentManager currentUser={currentUser} />
               )}
               {currentPage === 'results' && (
                 <StudentResults 

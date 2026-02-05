@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Users, FileQuestion, Trophy, Activity, Medal, Shield, Search, ArrowRight, Star, Wifi, WifiOff, Database, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, FileQuestion, Trophy, Activity, Medal, Shield, Search, ArrowRight, Star, Wifi, WifiOff, Database, Zap, FileText, Edit, X, Save, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Student, Question, Score, GameId, User } from '../types';
+import { googleSheetsService } from '../services/googleSheetsService';
+import { useToast } from '../context/ToastContext';
 
 interface DashboardProps {
   students: Student[];
@@ -19,6 +21,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
   const [lookupToken, setLookupToken] = useState('');
   const [lookupResult, setLookupResult] = useState<Student | null>(null);
   const [lookupMessage, setLookupMessage] = useState('');
+
+  // Description Feature State
+  const [descriptionData, setDescriptionData] = useState<{ yuda: string; sarco: string }>({ yuda: '', sarco: '' });
+  const [isDescModalOpen, setIsDescModalOpen] = useState(false);
+  const [editingDesc, setEditingDesc] = useState('');
+  const [targetGameForDesc, setTargetGameForDesc] = useState<'YudaAR' | 'SarcoAR'>('YudaAR');
+  const [isSavingDesc, setIsSavingDesc] = useState(false);
+
+  const { showToast } = useToast();
+
+  // Load Description on Mount
+  useEffect(() => {
+    loadDescription();
+  }, [currentUser]);
+
+  const loadDescription = async () => {
+    const res = await googleSheetsService.getDescription(currentUser.username);
+    if (res.status === 'success' && res.data) {
+        setDescriptionData(res.data);
+    }
+  };
+
+  const handleEditDescription = (target: 'YudaAR' | 'SarcoAR') => {
+      setTargetGameForDesc(target);
+      setEditingDesc(target === 'YudaAR' ? descriptionData.yuda : descriptionData.sarco);
+      setIsDescModalOpen(true);
+  };
+
+  const handleSaveDescription = async () => {
+      setIsSavingDesc(true);
+      try {
+          const res = await googleSheetsService.saveDescription(targetGameForDesc, editingDesc);
+          if (res.status === 'success') {
+              showToast('Description updated successfully', 'success');
+              setDescriptionData(prev => ({
+                  ...prev,
+                  [targetGameForDesc === 'YudaAR' ? 'yuda' : 'sarco']: editingDesc
+              }));
+              setIsDescModalOpen(false);
+          } else {
+              throw new Error(res.message);
+          }
+      } catch (error) {
+          showToast('Failed to save description', 'error');
+      } finally {
+          setIsSavingDesc(false);
+      }
+  };
 
   // Calculations
   const highestScore = scores.length > 0 ? Math.max(...scores.map(s => s.score)) : 0;
@@ -160,6 +210,88 @@ export const Dashboard: React.FC<DashboardProps> = ({ students, questions, score
           );
         })}
       </div>
+
+      {/* NEW SECTION: GAME DESCRIPTION MANAGER */}
+      <div className="grid grid-cols-1 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <FileText className="text-indigo-600" size={20}/>
+                Game Description (About Menu)
+             </h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 
+                 {(currentUser.role === 'SUPER_ADMIN' || currentUser.username === 'YudaAR') && (
+                     <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="font-bold text-slate-700">Yuda AR Description</span>
+                            <button 
+                                onClick={() => handleEditDescription('YudaAR')}
+                                className="text-xs flex items-center space-x-1 bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors"
+                            >
+                                <Edit size={12} /> <span>Edit</span>
+                            </button>
+                        </div>
+                        <p className="text-sm text-slate-600 whitespace-pre-wrap line-clamp-3">
+                            {descriptionData.yuda || "No description set yet..."}
+                        </p>
+                     </div>
+                 )}
+
+                 {(currentUser.role === 'SUPER_ADMIN' || currentUser.username === 'SarcoAR') && (
+                     <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="font-bold text-slate-700">Sarco AR Description</span>
+                             <button 
+                                onClick={() => handleEditDescription('SarcoAR')}
+                                className="text-xs flex items-center space-x-1 bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors"
+                            >
+                                <Edit size={12} /> <span>Edit</span>
+                            </button>
+                        </div>
+                        <p className="text-sm text-slate-600 whitespace-pre-wrap line-clamp-3">
+                            {descriptionData.sarco || "No description set yet..."}
+                        </p>
+                     </div>
+                 )}
+             </div>
+          </div>
+      </div>
+
+      {/* EDIT DESCRIPTION MODAL */}
+      {isDescModalOpen && (
+         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-slate-800">Edit {targetGameForDesc} Description</h3>
+                    <button onClick={() => setIsDescModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                        <X size={24} />
+                    </button>
+                </div>
+                <textarea 
+                    className="w-full h-40 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-sans"
+                    placeholder="Enter the game description text here..."
+                    value={editingDesc}
+                    onChange={(e) => setEditingDesc(e.target.value)}
+                />
+                <div className="flex justify-end space-x-3 mt-4">
+                    <button 
+                        onClick={() => setIsDescModalOpen(false)}
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSaveDescription}
+                        disabled={isSavingDesc}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2 font-medium disabled:opacity-50"
+                    >
+                        {isSavingDesc ? <Loader2 className="animate-spin" size={18}/> : <Save size={18} />}
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+             </div>
+         </div>
+      )}
 
       {/* QUICK TOKEN LOOKUP & SUPER ADMIN STATS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

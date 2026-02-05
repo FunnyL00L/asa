@@ -1,4 +1,5 @@
-import { Question, Student, Score, ApiResponse } from '../types';
+
+import { Question, Student, Score, ContentItem, ApiResponse } from '../types';
 
 // The Google Apps Script Web App URL provided by the user
 const API_URL = 'https://script.google.com/macros/s/AKfycbw0Nb3b4_u7ZWhwiWMSLNWz0Gux5GnvEQ76xoVYyyl6ra2nYF3aFdSOvU7Qi6Vx_TOwFw/exec';
@@ -36,7 +37,16 @@ export const googleSheetsService = {
     }
   },
 
-  // Using POST with text/plain (default fetch behavior for strings) prevents CORS Preflight issues on GAS
+  getContents: async (requester: string): Promise<ApiResponse<ContentItem[]>> => {
+    try {
+      const res = await fetch(`${API_URL}?action=getContents&requester=${requester}`);
+      return await res.json();
+    } catch (e) {
+      console.error("API Error", e);
+      return { status: 'error', message: 'Failed to fetch content' };
+    }
+  },
+
   saveQuestion: async (q: Question): Promise<ApiResponse<null>> => {
     try {
       const res = await fetch(API_URL, {
@@ -106,6 +116,59 @@ export const googleSheetsService = {
       return await res.json();
     } catch (e) {
       return { status: 'error', message: 'Failed to delete score' };
+    }
+  },
+
+  // NEW: Save Content with File Support
+  // We extend the payload to include fileData (base64)
+  saveContent: async (content: ContentItem, fileData?: string): Promise<ApiResponse<null>> => {
+    try {
+      const payload = { 
+        action: 'adminSaveContent', 
+        ...content,
+        fileData: fileData // Pass base64 data to backend if a new file is uploaded
+      };
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      return await res.json();
+    } catch (e) {
+      return { status: 'error', message: 'Failed to save content' };
+    }
+  },
+
+  deleteContent: async (id: string, owner: string): Promise<ApiResponse<null>> => {
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'adminDeleteContent', id, owner })
+      });
+      return await res.json();
+    } catch (e) {
+      return { status: 'error', message: 'Failed to delete content' };
+    }
+  },
+
+  getDescription: async (requester: string): Promise<ApiResponse<{ yuda: string; sarco: string }>> => {
+    try {
+      const res = await fetch(`${API_URL}?action=getDescription&requester=${requester}`);
+      return await res.json();
+    } catch (e) {
+      return { status: 'error', message: 'Failed to fetch description' };
+    }
+  },
+
+  saveDescription: async (owner: string, text: string): Promise<ApiResponse<null>> => {
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'adminSaveDescription', owner, description: text })
+      });
+      return await res.json();
+    } catch (e) {
+      return { status: 'error', message: 'Failed to save description' };
     }
   }
 };
