@@ -57,6 +57,18 @@ export const ContentManager: React.FC<ContentManagerProps> = ({ currentUser }) =
     }
   };
 
+  // --- LOGIC BATASAN KONTEN (MAX 1 PER OWNER) ---
+  const isSuperAdmin = currentUser.role === 'SUPER_ADMIN';
+  const hasYudaContent = contents.some(c => c.owner === 'YudaAR');
+  const hasSarcoContent = contents.some(c => c.owner === 'SarcoAR');
+
+  // Tombol Add hanya muncul jika:
+  // 1. Super Admin: Salah satu dari Yuda atau Sarco belum punya konten.
+  // 2. Admin Biasa: Belum punya konten sama sekali (length 0).
+  const canAdd = isSuperAdmin 
+    ? (!hasYudaContent || !hasSarcoContent)
+    : contents.length === 0;
+
   const handleAddNew = () => {
       setCurrentId('');
       setTitle('');
@@ -66,7 +78,19 @@ export const ContentManager: React.FC<ContentManagerProps> = ({ currentUser }) =
       setFileName('');
       setFileType('');
       setFileBase64(undefined);
-      setSelectedOwner(currentUser.role === 'SUPER_ADMIN' ? 'YudaAR' : currentUser.username);
+      
+      // Smart Default for Super Admin:
+      // If Yuda exists but Sarco is missing, default to Sarco.
+      if (isSuperAdmin) {
+        if (hasYudaContent && !hasSarcoContent) {
+            setSelectedOwner('SarcoAR');
+        } else {
+            setSelectedOwner('YudaAR');
+        }
+      } else {
+        setSelectedOwner(currentUser.username);
+      }
+      
       setIsFormVisible(true);
   };
 
@@ -164,7 +188,8 @@ export const ContentManager: React.FC<ContentManagerProps> = ({ currentUser }) =
             Manage information, locations, and downloadable files (PDF/PPT).
           </p>
         </div>
-        {!isFormVisible && (
+        {/* HANYA TAMPILKAN TOMBOL JIKA MEMENUHI SYARAT (MAX 1 PER OWNER) */}
+        {!isFormVisible && canAdd && (
             <button
             onClick={handleAddNew}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors shadow-md shadow-indigo-500/30"
@@ -192,8 +217,22 @@ export const ContentManager: React.FC<ContentManagerProps> = ({ currentUser }) =
                         value={selectedOwner}
                         onChange={(e) => setSelectedOwner(e.target.value)}
                     >
-                        <option value="YudaAR">Yuda AR</option>
-                        <option value="SarcoAR">Sarco AR</option>
+                        {/* 
+                            Logic Dropdown Super Admin:
+                            Saat 'Edit', tampilkan semua opsi.
+                            Saat 'New', sembunyikan opsi yang sudah ada datanya.
+                        */}
+                        {currentId ? (
+                            <>
+                                <option value="YudaAR">Yuda AR</option>
+                                <option value="SarcoAR">Sarco AR</option>
+                            </>
+                        ) : (
+                            <>
+                                {!hasYudaContent && <option value="YudaAR">Yuda AR</option>}
+                                {!hasSarcoContent && <option value="SarcoAR">Sarco AR</option>}
+                            </>
+                        )}
                     </select>
                   </div>
                 )}
