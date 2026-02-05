@@ -2,7 +2,7 @@
 import { Question, Student, Score, ContentItem, ApiResponse } from '../types';
 
 // The Google Apps Script Web App URL provided by the user
-const API_URL = 'https://script.google.com/macros/s/AKfycbw0Nb3b4_u7ZWhwiWMSLNWz0Gux5GnvEQ76xoVYyyl6ra2nYF3aFdSOvU7Qi6Vx_TOwFw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxAk2pn4B-LuAXW2PXQoXgwR-Oxmd07j9pl8xDEghr7snij20AFqUDgXQ3GWHvK__Mpww/exec';
 
 export const googleSheetsService = {
   getQuestions: async (requester: string, gameId?: string): Promise<ApiResponse<Question[]>> => {

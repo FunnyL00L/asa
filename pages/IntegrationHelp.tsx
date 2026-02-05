@@ -3,7 +3,7 @@ import { Copy, Code2 } from 'lucide-react';
 
 export const IntegrationHelp: React.FC = () => {
   // URL Updated to the one provided by user
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbz2_t1jUYLHEZXC1fJaOowYgTXS-idwwqU2Xt2h85WcVT9A7INkfFjcxjZv8sVnfDbw1A/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxAk2pn4B-LuAXW2PXQoXgwR-Oxmd07j9pl8xDEghr7snij20AFqUDgXQ3GWHvK__Mpww/exec";
 
   return (
     <div className="space-y-6 max-w-4xl pb-12">
